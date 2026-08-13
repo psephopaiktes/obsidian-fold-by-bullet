@@ -30,11 +30,11 @@ Obsidian's parser discards the bullet character, because CommonMark defines the 
 
 ### From Obsidian
 
-Not yet in the community plugin directory.
+Open **Settings → Community plugins → Browse**, search for **Fold by Bullet**, then install and enable it.
 
 ### Manually
 
-1. Download `main.js` and `manifest.json` from the [latest release](../../releases/latest).
+1. Download `main.js` and `manifest.json` from the [latest release](https://github.com/psephopaiktes/obsidian-fold-by-bullet/releases/latest).
 2. Create a folder called `fold-by-bullet` inside `<your vault>/.obsidian/plugins/`.
 3. Copy the files into it.
 4. Reload Obsidian and enable the plugin under **Settings → Community plugins**.
