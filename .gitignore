@@ -1,5 +1,4 @@
 node_modules/
-package-lock.json
 
 # Build output. Committed only on release, via the GitHub release assets.
 main.js
