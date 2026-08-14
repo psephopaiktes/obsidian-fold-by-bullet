@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- Add three commands — **Convert to `-` list**, **Convert to `*` list** and
+  **Convert to `+` list** — that rewrite the lines under the cursor or
+  selection into list items using that bullet. Headings, quotes, ordered items
+  and plain paragraphs are all accepted; task markers are preserved, and blank
+  lines, thematic breaks and fenced code are skipped.
+- The new commands ship without default hotkeys. Which bullet means what is
+  your convention, so the binding should be yours too.
+
 ## 0.1.0
 
 First release.

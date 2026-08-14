@@ -1,13 +1,23 @@
-import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
+import { Editor, MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import { foldEffect, unfoldAll } from "@codemirror/language";
 import type { EditorView } from "@codemirror/view";
 
+import { convertLines } from "./convert";
 import { findFoldRanges, isExcluded } from "./fold";
 import {
+	BULLETS,
 	DEFAULT_SETTINGS,
 	FoldByBulletSettingTab,
+	type Bullet,
 	type FoldByBulletSettings,
 } from "./settings";
+
+/** Command id fragments, since the bullet characters themselves are not usable. */
+const BULLET_SLUGS: Record<Bullet, string> = {
+	"-": "hyphen",
+	"*": "asterisk",
+	"+": "plus",
+};
 
 /**
  * Obsidian restores its own saved fold state shortly after a file opens.
@@ -40,6 +50,16 @@ export default class FoldByBulletPlugin extends Plugin {
 			},
 		});
 
+		// Deliberately shipped without default hotkeys: which bullet means what
+		// is the user's convention, so the binding should be too.
+		for (const bullet of BULLETS) {
+			this.addCommand({
+				id: `convert-to-${BULLET_SLUGS[bullet]}-list`,
+				name: `Convert to "${bullet}" list`,
+				editorCallback: (editor) => this.convertToBullet(editor, bullet),
+			});
+		}
+
 		this.registerEvent(
 			this.app.workspace.on("file-open", (file) => {
 				if (!this.settings.foldOnOpen || !file) return;
@@ -52,6 +72,33 @@ export default class FoldByBulletPlugin extends Plugin {
 				}
 			}),
 		);
+	}
+
+	/**
+	 * Rewrite every line the cursor or selection touches into a list item
+	 * using `bullet`.
+	 *
+	 * Edits are applied bottom-up so that earlier replacements cannot shift
+	 * the positions of the ones still queued.
+	 */
+	private convertToBullet(editor: Editor, bullet: Bullet): void {
+		const targets = new Set<number>();
+		for (const selection of editor.listSelections()) {
+			const from = Math.min(selection.anchor.line, selection.head.line);
+			const to = Math.max(selection.anchor.line, selection.head.line);
+			for (let line = from; line <= to; line++) targets.add(line);
+		}
+
+		const lines = editor.getValue().split("\n");
+		const edits = convertLines(lines, targets, bullet);
+
+		for (const edit of edits.reverse()) {
+			editor.replaceRange(
+				edit.text,
+				{ line: edit.line, ch: 0 },
+				{ line: edit.line, ch: lines[edit.line].length },
+			);
+		}
 	}
 
 	/**

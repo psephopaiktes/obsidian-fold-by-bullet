@@ -60,8 +60,21 @@ Turn on every bullet and the plugin becomes "fold all lists on open". Turn on no
 
 - **Fold by bullet** — apply the rules to the current note. Ignores the folder exclusion list, since you asked for it explicitly.
 - **Unfold everything in this note** — expand all folds.
+- **Convert to `-` list**, **Convert to `*` list**, **Convert to `+` list** — rewrite every line the cursor or selection touches into a list item using that bullet.
 
-Bind them under **Settings → Hotkeys**.
+None of them ship with a default hotkey. Bind the ones you want under **Settings → Hotkeys**.
+
+### About the convert commands
+
+Since the bullet decides whether a section starts folded, changing it is an editing action you will want to repeat. These commands give it a key.
+
+They accept whatever the line currently is — a heading, a quote, an ordered item, another bullet, or a plain paragraph — and leave it as a list item with the bullet you asked for. A task marker is content rather than structure, so it survives:
+
+```markdown
+- [ ] Ship the release      →      + [ ] Ship the release
+```
+
+Blank lines, thematic breaks (`---`) and anything inside a fenced code block are skipped, so running a command over a whole note will not corrupt it.
 
 ## Limitations
 
