@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- Leave the cursor after the marker instead of in front of it. Converting an
+  empty line put the cursor where it had been, which is before the marker the
+  command had just written — you had to press the right arrow twice before
+  typing.
+
 ## 0.3.0
 
 - The convert commands now act on an empty line when it is the only line in

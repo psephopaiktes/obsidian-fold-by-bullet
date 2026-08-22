@@ -2,7 +2,7 @@ import { Editor, MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import { foldEffect, unfoldAll } from "@codemirror/language";
 import type { EditorView } from "@codemirror/view";
 
-import { convertLines } from "./convert";
+import { convertLines, type LineEdit } from "./convert";
 import { findFoldRanges, isExcluded } from "./fold";
 import {
 	BULLETS,
@@ -82,8 +82,9 @@ export default class FoldByBulletPlugin extends Plugin {
 	 * the positions of the ones still queued.
 	 */
 	private convertToBullet(editor: Editor, bullet: Bullet): void {
+		const selections = editor.listSelections();
 		const targets = new Set<number>();
-		for (const selection of editor.listSelections()) {
+		for (const selection of selections) {
 			const from = Math.min(selection.anchor.line, selection.head.line);
 			const to = Math.max(selection.anchor.line, selection.head.line);
 			for (let line = from; line <= to; line++) targets.add(line);
@@ -91,14 +92,48 @@ export default class FoldByBulletPlugin extends Plugin {
 
 		const lines = editor.getValue().split("\n");
 		const edits = convertLines(lines, targets, bullet);
+		if (edits.length === 0) return;
 
-		for (const edit of edits.reverse()) {
+		for (const edit of [...edits].reverse()) {
 			editor.replaceRange(
 				edit.text,
 				{ line: edit.line, ch: 0 },
 				{ line: edit.line, ch: lines[edit.line].length },
 			);
 		}
+
+		this.restoreCursor(editor, selections, lines, edits);
+	}
+
+	/**
+	 * Keep a lone cursor where the writer expects it.
+	 *
+	 * Replacing the whole line leaves the cursor at the same offset, which on
+	 * an empty line means sitting in front of the marker that was just added.
+	 * Shift it by however much the line grew, and never let it end up inside
+	 * or before the marker.
+	 */
+	private restoreCursor(
+		editor: Editor,
+		selections: ReturnType<Editor["listSelections"]>,
+		before: string[],
+		edits: LineEdit[],
+	): void {
+		if (selections.length !== 1) return;
+		const { anchor, head } = selections[0];
+		if (anchor.line !== head.line || anchor.ch !== head.ch) return;
+
+		const edit = edits.find((candidate) => candidate.line === head.line);
+		if (!edit) return;
+
+		const marker = /^[\t ]*[-*+] /.exec(edit.text);
+		const floor = marker ? marker[0].length : 0;
+		const shifted = head.ch + edit.text.length - before[edit.line].length;
+
+		editor.setCursor({
+			line: edit.line,
+			ch: Math.min(edit.text.length, Math.max(floor, shifted)),
+		});
 	}
 
 	/**

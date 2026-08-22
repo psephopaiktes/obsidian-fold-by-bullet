@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-fold-by-bullet",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Obsidian plugin that folds list items by default based on their bullet character.",
 	"main": "main.js",
 	"scripts": {

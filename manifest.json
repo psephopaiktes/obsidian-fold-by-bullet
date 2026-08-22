@@ -1,7 +1,7 @@
 {
 	"id": "fold-by-bullet",
 	"name": "Fold by Bullet",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"minAppVersion": "1.4.0",
 	"description": "Collapse list items by default based on the bullet character they use. Write - to start folded and + to stay open.",
 	"author": "Akira Hirata",
