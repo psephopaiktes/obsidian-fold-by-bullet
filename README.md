@@ -74,7 +74,9 @@ They accept whatever the line currently is — a heading, a quote, an ordered it
 - [ ] Ship the release      →      + [ ] Ship the release
 ```
 
-Blank lines, thematic breaks (`---`) and anything inside a fenced code block are skipped, so running a command over a whole note will not corrupt it.
+Thematic breaks (`---`) and anything inside a fenced code block are skipped, so running a command over a whole note will not corrupt it.
+
+Blank lines depend on how much is selected. Sweeping a selection across a note leaves its blank lines alone, but a cursor sitting by itself on an empty line gets a bare marker — pressing Enter and reaching for the command before typing is the normal way to start an item.
 
 ## Limitations
 

@@ -18,6 +18,9 @@ export interface LineEdit {
  * Any existing block marker is stripped first, so a heading, quote, ordered
  * item or differently-bulleted item all end up in the same shape. A task
  * marker (`[ ]`) is content rather than a block marker, so it survives.
+ *
+ * An empty line yields a bare marker, which is what you want when you press
+ * Enter and then reach for the command before typing anything.
  */
 export function setBullet(line: string, bullet: Bullet): string {
 	const [, indent, body] = INDENT_RE.exec(line) as RegExpExecArray;
@@ -29,17 +32,21 @@ export function setBullet(line: string, bullet: Bullet): string {
 		rest = rest.replace(MARKER_RE, "");
 	} while (rest !== previous);
 
-	if (rest.length === 0) return line;
-	return `${indent}${bullet} ${rest}`;
+	return rest.length === 0 ? `${indent}${bullet} ` : `${indent}${bullet} ${rest}`;
 }
 
 /**
  * Work out which of `targets` need rewriting.
  *
- * Blank lines, thematic breaks and anything inside a fenced code block are
- * left alone; a bullet there would corrupt the note rather than restructure
- * it. Fences are tracked from the top of the document, because a line only
- * counts as code when an unclosed fence precedes it.
+ * Thematic breaks and anything inside a fenced code block are left alone; a
+ * bullet there would corrupt the note rather than restructure it. Fences are
+ * tracked from the top of the document, because a line only counts as code
+ * when an unclosed fence precedes it.
+ *
+ * Blank lines depend on how many lines are in play. Sweeping a selection
+ * across a note should not litter its blank lines with markers, but a cursor
+ * sitting alone on an empty line is someone asking for a new item — that is
+ * the normal way to start one.
  */
 export function convertLines(
 	lines: string[],
@@ -48,6 +55,7 @@ export function convertLines(
 ): LineEdit[] {
 	const wanted = new Set(targets);
 	if (wanted.size === 0) return [];
+	const keepBlank = wanted.size === 1;
 
 	const last = Math.max(...wanted);
 	const edits: LineEdit[] = [];
@@ -62,7 +70,8 @@ export function convertLines(
 			continue;
 		}
 		if (fence || !wanted.has(index)) continue;
-		if (line.trim().length === 0 || THEMATIC_BREAK_RE.test(line)) continue;
+		if (THEMATIC_BREAK_RE.test(line)) continue;
+		if (!keepBlank && line.trim().length === 0) continue;
 
 		const text = setBullet(line, bullet);
 		if (text !== line) edits.push({ line: index, text });

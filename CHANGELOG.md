@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- The convert commands now act on an empty line when it is the only line in
+  play. Pressing Enter and reaching for the command before typing is the
+  normal way to start an item, and it previously did nothing. Sweeping a
+  selection across a note still leaves its blank lines alone.
+- A list item with a marker but no text (`- `) is converted too, instead of
+  being left as it was.
+
 ## 0.2.0
 
 - Add three commands — **Convert to `-` list**, **Convert to `*` list** and
