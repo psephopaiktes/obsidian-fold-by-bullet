@@ -50,11 +50,26 @@ Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) and add this reposi
 | Fold `-` lists | on | Items written with `-` collapse when the note opens |
 | Fold `*` lists | off | Same, for `*` |
 | Fold `+` lists | off | Same, for `+` |
+| Fold `- [ ]` tasks | on | Checkboxes written with `-` collapse when the note opens |
+| Fold `* [ ]` tasks | off | Same, for `*` |
+| Fold `+ [ ]` tasks | off | Same, for `+` |
 | Fold when a note is opened | on | Turn off to fold only via the command |
-| Include task list items | on | Treat `- [ ] task` like a plain `-` item |
 | Excluded folders | empty | One path per line. Notes inside are never folded automatically |
 
 Turn on every bullet and the plugin becomes "fold all lists on open". Turn on none and nothing happens.
+
+Tasks are configured separately from plain items, since a checkbox reads as a different kind of thing even when it shares a bullet. A common arrangement is to fold reference material written with `-` while leaving `- [ ]` open, so today's work stays in front of you:
+
+```markdown
+- Reference                 ← starts folded
+    - RFC 5545
+
+- [ ] Ship the release      ← stays open
+    - [ ] Tag it
+    - [ ] Write the notes
+```
+
+The settings screen is translated into English, Japanese, Simplified Chinese and Spanish, following Obsidian's own language setting.
 
 ## Commands
 

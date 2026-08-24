@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0
+
+- Task items are configured per bullet, the same way plain items already were.
+  `- [ ]`, `* [ ]` and `+ [ ]` each get their own toggle, so reference material
+  written with `-` can start folded while `- [ ]` stays open.
+- Replaces the single **Include task list items** switch. Existing settings are
+  migrated on load: the switch being on means checkboxes keep following the
+  plain bullet settings, and off means no checkbox folds.
+- The settings screen is translated into Japanese, Simplified Chinese and
+  Spanish, following Obsidian's own language setting.
+- Requires Obsidian 1.8.7, which is where `getLanguage()` became available.
+
 ## 0.3.1
 
 - Leave the cursor after the marker instead of in front of it. Converting an

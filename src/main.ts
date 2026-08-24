@@ -167,7 +167,7 @@ export default class FoldByBulletPlugin extends Plugin {
 		const ranges = findFoldRanges(
 			lines,
 			this.settings.foldedBullets,
-			this.settings.includeTasks,
+			this.settings.foldedTaskBullets,
 		);
 		if (ranges.length === 0) return;
 
@@ -197,7 +197,19 @@ export default class FoldByBulletPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const saved = ((await this.loadData()) ?? {}) as Partial<FoldByBulletSettings> & {
+			includeTasks?: boolean;
+		};
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
+
+		// Before 1.0.0 a single `includeTasks` flag decided whether checkboxes
+		// followed the plain bullet settings. Carry that choice over so nobody
+		// finds their notes folding differently after an update.
+		if (saved.foldedTaskBullets === undefined) {
+			this.settings.foldedTaskBullets =
+				saved.includeTasks === false ? [] : [...this.settings.foldedBullets];
+			await this.saveSettings();
+		}
 	}
 
 	async saveSettings(): Promise<void> {

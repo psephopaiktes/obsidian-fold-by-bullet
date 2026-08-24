@@ -23,8 +23,11 @@ function indentWidth(raw: string): number {
 }
 
 /**
- * Find every list item written with one of `foldedBullets` that has at least
- * one line of nested content underneath it.
+ * Find every list item that starts folded and has at least one line of nested
+ * content underneath it.
+ *
+ * A checkbox is looked up in `foldedTaskBullets` and a plain item in
+ * `foldedBullets`, so `- [ ]` and `-` can be set independently.
  *
  * The parser walks raw Markdown rather than the rendered tree on purpose: the
  * bullet character is discarded during parsing, since CommonMark treats `-`,
@@ -33,11 +36,12 @@ function indentWidth(raw: string): number {
 export function findFoldRanges(
 	lines: string[],
 	foldedBullets: readonly Bullet[],
-	includeTasks: boolean,
+	foldedTaskBullets: readonly Bullet[],
 ): FoldRange[] {
-	if (foldedBullets.length === 0) return [];
+	if (foldedBullets.length === 0 && foldedTaskBullets.length === 0) return [];
 
-	const wanted = new Set<string>(foldedBullets);
+	const plain = new Set<string>(foldedBullets);
+	const tasks = new Set<string>(foldedTaskBullets);
 	const ranges: FoldRange[] = [];
 	/** Open candidates, innermost last. */
 	const stack: { line: number; indent: number }[] = [];
@@ -75,7 +79,7 @@ export function findFoldRanges(
 			const [, rawIndent, bullet, , task] = match;
 			const width = indentWidth(rawIndent);
 			close(width, lastContentLine);
-			if (wanted.has(bullet) && (includeTasks || !task)) {
+			if (task ? tasks.has(bullet) : plain.has(bullet)) {
 				stack.push({ line: i, indent: width });
 			}
 			lastContentLine = i;
