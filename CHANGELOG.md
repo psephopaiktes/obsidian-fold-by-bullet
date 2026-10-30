@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- Apply automatic bullet-based folding to editable notes rendered inside Sync
+  Embeds `sync` blocks. Folder exclusions are respected when Sync Embeds
+  exposes the embedded file, and focused embeds also work with the existing
+  fold and unfold commands through Sync Embeds' command forwarding.
+- Prevent detached editor views from applying their `file-open` event to an
+  unrelated active note.
+
 ## 1.0.0
 
 - Task items are configured per bullet, the same way plain items already were.

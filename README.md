@@ -26,6 +26,10 @@ This plugin uses something already in your notes: the bullet you happened to typ
 
 Obsidian's parser discards the bullet character, because CommonMark defines the three markers as equivalent. So the plugin reads the raw Markdown instead, finds list items written with the configured characters, and applies CodeMirror fold ranges to them when the note opens.
 
+Editors embedded by [Sync Embeds](https://github.com/uthvah/sync-embeds) are
+handled too. Each synced block is a real CodeMirror editor, so Fold by Bullet
+applies the same automatic-open rules when that editor finishes loading.
+
 ## Installation
 
 ### From Obsidian
@@ -95,7 +99,8 @@ Blank lines depend on how much is selected. Sweeping a selection across a note l
 
 ## Limitations
 
-- **Editing view only.** Reading view renders its own DOM and does not expose fold state. Notes opened in Reading view are unaffected.
+- **Native Reading view is unaffected.** It renders its own DOM and does not expose fold state. The editable CodeMirror views created by Sync Embeds are the exception described below.
+- **Editable Sync Embeds are supported.** Automatic folding runs when a `sync` block's editor loads. The **Fold by bullet** and **Unfold everything in this note** commands also target a synced editor while it has focus, using Sync Embeds' command forwarding.
 - **Obsidian's saved folds win on conflict.** Obsidian restores its own per-file fold state when a note opens. The plugin applies its folds shortly afterwards, which means a section you deliberately expanded last session collapses again. Turn off *Fold when a note is opened* and use the command if you would rather keep Obsidian's memory.
 - **Bullet changes need a reopen.** Editing `-` to `+` does not unfold the section on the spot. Reopen the note or run the command.
 - **Uses a private API.** Reaching CodeMirror through `editor.cm` is not part of Obsidian's public plugin API and may break in a future release.

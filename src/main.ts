@@ -1,6 +1,13 @@
-import { Editor, MarkdownView, Notice, Plugin, TFile } from "obsidian";
+import {
+	Editor,
+	MarkdownRenderChild,
+	MarkdownView,
+	Notice,
+	Plugin,
+	TFile,
+} from "obsidian";
 import { foldEffect, unfoldAll } from "@codemirror/language";
-import type { EditorView } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 
 import { convertLines, type LineEdit } from "./convert";
 import { findFoldRanges, isExcluded } from "./fold";
@@ -24,6 +31,81 @@ const BULLET_SLUGS: Record<Bullet, string> = {
  * Waiting a tick keeps our folds from being overwritten by that restore.
  */
 const APPLY_DELAY_MS = 60;
+
+/**
+ * Sync Embeds renders each embed as a real CodeMirror editor after its
+ * Markdown code block has already been processed. Watch that block until the
+ * editor appears, then hand it back to the plugin exactly once.
+ */
+class SyncEmbedFoldWatcher extends MarkdownRenderChild {
+	private observer: MutationObserver | null = null;
+	private readonly seen = new WeakSet<EditorView>();
+	private readonly timers = new Set<number>();
+
+	constructor(
+		containerEl: HTMLElement,
+		private readonly onEditorReady: (
+			view: EditorView,
+			editorEl: HTMLElement,
+		) => void,
+	) {
+		super(containerEl);
+	}
+
+	onload(): void {
+		this.observer = new MutationObserver(() => this.scan());
+		this.observer.observe(this.containerEl, { childList: true, subtree: true });
+		this.scan();
+	}
+
+	onunload(): void {
+		this.observer?.disconnect();
+		this.observer = null;
+		for (const timer of this.timers) window.clearTimeout(timer);
+		this.timers.clear();
+	}
+
+	private scan(): void {
+		this.containerEl
+			.querySelectorAll<HTMLElement>(".sync-embed .cm-editor")
+			.forEach((editorEl) => {
+				const view = EditorView.findFromDOM(editorEl);
+				if (!view || this.seen.has(view)) return;
+
+				this.seen.add(view);
+				const timer = window.setTimeout(() => {
+					this.timers.delete(timer);
+					if (this.containerEl.contains(editorEl)) {
+						this.onEditorReady(view, editorEl);
+					}
+				}, APPLY_DELAY_MS);
+				this.timers.add(timer);
+			});
+
+		// Once every valid embed in this block has finished loading, later
+		// CodeMirror DOM updates cannot reveal another editor. Stop observing so
+		// ordinary typing does not keep rescanning the block.
+		if (
+			this.containerEl.querySelector(".sync-embed") &&
+			!this.containerEl.querySelector(".sync-embed-loading")
+		) {
+			this.observer?.disconnect();
+			this.observer = null;
+		}
+	}
+}
+
+interface SyncEmbedsPlugin {
+	embedManager?: {
+		getEmbedFromElement?: (
+			element: HTMLElement,
+		) => { file?: TFile } | null;
+	};
+}
+
+interface AppWithCommunityPlugins {
+	plugins?: { plugins?: Record<string, unknown> };
+}
 
 export default class FoldByBulletPlugin extends Plugin {
 	settings: FoldByBulletSettings = DEFAULT_SETTINGS;
@@ -60,13 +142,29 @@ export default class FoldByBulletPlugin extends Plugin {
 			});
 		}
 
+		// Sync Embeds creates its editors lazily inside rendered `sync` code
+		// blocks, so they do not exist when the usual file-open event fires.
+		this.registerMarkdownCodeBlockProcessor("sync", (_source, el, ctx) => {
+			ctx.addChild(
+				new SyncEmbedFoldWatcher(el, (cm, editorEl) => {
+					this.applyFoldsToSyncEmbed(cm, editorEl);
+				}),
+			);
+		});
+
 		this.registerEvent(
 			this.app.workspace.on("file-open", (file) => {
 				if (!this.settings.foldOnOpen || !file) return;
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (view) {
+				// A detached Sync Embeds leaf also emits file-open. Do not apply
+				// that file's event to whichever normal note happens to be active.
+				if (view?.file?.path === file.path) {
 					window.setTimeout(
-						() => this.applyFolds(view, { file }),
+						() => {
+							if (view.file?.path === file.path) {
+								this.applyFolds(view, { file });
+							}
+						},
 						APPLY_DELAY_MS,
 					);
 				}
@@ -163,7 +261,46 @@ export default class FoldByBulletPlugin extends Plugin {
 			return;
 		}
 
-		const lines = view.editor.getValue().split("\n");
+		this.applyFoldsToEditor(cm);
+	}
+
+	/** Apply the automatic-open rules to an editor created by Sync Embeds. */
+	private applyFoldsToSyncEmbed(
+		cm: EditorView,
+		editorEl: HTMLElement,
+	): void {
+		if (!this.settings.foldOnOpen) return;
+
+		const file = this.getSyncEmbedFile(editorEl);
+		if (file && isExcluded(file.path, this.settings.excludedFolders)) return;
+
+		this.applyFoldsToEditor(cm);
+	}
+
+	/**
+	 * Ask Sync Embeds which file owns an editor when its current API is
+	 * available. Folding still works if that private integration changes; only
+	 * excluded-folder detection for the embed then becomes unavailable.
+	 */
+	private getSyncEmbedFile(editorEl: HTMLElement): TFile | null {
+		const plugins = (this.app as unknown as AppWithCommunityPlugins).plugins
+			?.plugins;
+		const syncEmbeds = plugins?.["sync-embeds"] as
+			| SyncEmbedsPlugin
+			| undefined;
+		const getEmbed = syncEmbeds?.embedManager?.getEmbedFromElement;
+		if (!getEmbed) return null;
+
+		try {
+			return getEmbed.call(syncEmbeds.embedManager, editorEl)?.file ?? null;
+		} catch {
+			return null;
+		}
+	}
+
+	/** Collapse every qualifying list item in one CodeMirror document. */
+	private applyFoldsToEditor(cm: EditorView): void {
+		const lines = cm.state.doc.toString().split("\n");
 		const ranges = findFoldRanges(
 			lines,
 			this.settings.foldedBullets,
