@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+- Restore Sync Embeds rendering by observing its completed editor DOM instead
+  of registering a competing `sync` code-block processor.
+- Restrict automatic folds to the visible section for section embeds, so folds
+  elsewhere in the source note cannot hide the embedded content.
+
 ## 1.1.0
 
 - Apply automatic bullet-based folding to editable notes rendered inside Sync
